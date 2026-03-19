@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Agent Cost Calculator — bluego.ai</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e8eaf0;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #8b8fa8;
+      font-size: 15px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #1e3a5f;
+      color: #60a5fa;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 99px;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2a2d3a;
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #8b8fa8;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 20px;
+    }
+
+    /* Sliders */
+    .slider-group {
+      margin-bottom: 24px;
+    }
+
+    .slider-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .slider-label span:first-child {
+      font-size: 15px;
+      font-weight: 500;
+      color: #d0d3e8;
+    }
+
+    .slider-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #60a5fa;
+      min-width: 80px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: #2a2d3a;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #60a5fa;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: #93c5fd;
+    }
+
+    .slider-hints {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      font-size: 11px;
+      color: #4b4f6a;
+    }
+
+    /* Token sliders section */
+    .token-sliders {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 560px) {
+      .token-sliders { grid-template-columns: 1fr; }
+    }
+
+    /* Cost breakdown table */
+    .breakdown {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .breakdown tr {
+      border-bottom: 1px solid #2a2d3a;
+    }
+
+    .breakdown tr:last-child {
+      border-bottom: none;
+    }
+
+    .breakdown td {
+      padding: 12px 0;
+      font-size: 15px;
+    }
+
+    .breakdown td:last-child {
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .breakdown .label {
+      color: #8b8fa8;
+    }
+
+    .breakdown .tokens {
+      color: #4b4f6a;
+      font-size: 12px;
+      padding-top: 0;
+      padding-bottom: 4px;
+    }
+
+    .breakdown .total-row td {
+      padding-top: 16px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      border-top: 2px solid #2a2d3a;
+    }
+
+    /* Comparison */
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      text-align: center;
+    }
+
+    @media (max-width: 480px) {
+      .comparison { grid-template-columns: 1fr; }
+    }
+
+    .stat-box {
+      background: #0f1117;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .stat-box .stat-label {
+      font-size: 12px;
+      color: #4b4f6a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .stat-box .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .stat-box .stat-sub {
+      font-size: 12px;
+      color: #8b8fa8;
+      margin-top: 4px;
+    }
+
+    .stat-box.savings .stat-value {
+      color: #34d399;
+    }
+
+    .stat-box.without .stat-value {
+      color: #f87171;
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
+    /* Color dots */
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .dot-blue   { background: #3b82f6; }
+    .dot-purple { background: #8b5cf6; }
+    .dot-green  { background: #10b981; }
+    .dot-yellow { background: #f59e0b; }
+
+    .footer-note {
+      text-align: center;
+      font-size: 12px;
+      color: #4b4f6a;
+      margin-top: 24px;
+    }
+
+    .reset-btn {
+      background: none;
+      border: 1px solid #2a2d3a;
+      color: #8b8fa8;
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      float: right;
+      transition: all 0.2s;
+    }
+
+    .reset-btn:hover {
+      border-color: #60a5fa;
+      color: #60a5fa;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge">bluego.ai</div>
+    <h1>AI Agent Cost Calculator</h1>
+    <p>Estimate monthly API costs based on real usage data from a deployed AI agent.</p>
+  </div>
+
+  <!-- Volume -->
+  <div class="card">
+    <h2>Volume</h2>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span>Conversations per month</span>
+        <span class="slider-value" id="val-convos">200</span>
+      </div>
+      <input type="range" id="sl-convos" min="10" max="2000" step="10" value="200" />
+      <div class="slider-hints"><span>10</span><span>2,000</span></div>
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span>Messages per conversation</span>
+        <span class="slider-value" id="val-msgs">6</span>
+      </div>
+      <input type="range" id="sl-msgs" min="2" max="50" step="1" value="6" />
+      <div class="slider-hints"><span>2</span><span>50</span></div>
+    </div>
+  </div>
+
+  <!-- Token assumptions -->
+  <div class="card">
+    <h2>Token assumptions per conversation <button class="reset-btn" onclick="resetTokens()">Reset to Max's data</button></h2>
+
+    <div class="token-sliders">
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span><span class="dot dot-blue"></span>Cache read (tokens)</span>
+          <span class="slider-value" id="val-cr">174,256</span>
+        </div>
+        <input type="range" id="sl-cr" min="5000" max="500000" step="1000" value="174256" />
+        <div class="slider-hints"><span>5K</span><span>500K</span></div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span><span class="dot dot-purple"></span>Cache write (tokens)</span>
+          <span class="slider-value" id="val-cw">138,981</span>
+        </div>
+        <input type="range" id="sl-cw" min="5000" max="400000" step="1000" value="138981" />
+        <div class="slider-hints"><span>5K</span><span>400K</span></div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span><span class="dot dot-green"></span>Output (tokens)</span>
+          <span class="slider-value" id="val-out">866</span>
+        </div>
+        <input type="range" id="sl-out" min="100" max="10000" step="50" value="866" />
+        <div class="slider-hints"><span>100</span><span>10K</span></div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span><span class="dot dot-yellow"></span>Live input (tokens)</span>
+          <span class="slider-value" id="val-li">503</span>
+        </div>
+        <input type="range" id="sl-li" min="100" max="10000" step="50" value="503" />
+        <div class="slider-hints"><span>100</span><span>10K</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card">
+    <h2>Monthly cost breakdown</h2>
+
+    <table class="breakdown">
+      <tr>
+        <td><span class="dot dot-blue"></span><span class="label">Cache read</span></td>
+        <td id="cost-cr">—</td>
+      </tr>
+      <tr>
+        <td style="padding-bottom:2px"><span class="dot dot-purple"></span><span class="label">Cache write</span></td>
+        <td id="cost-cw">—</td>
+      </tr>
+      <tr>
+        <td><span class="dot dot-green"></span><span class="label">Output</span></td>
+        <td id="cost-out">—</td>
+      </tr>
+      <tr>
+        <td><span class="dot dot-yellow"></span><span class="label">Live input</span></td>
+        <td id="cost-li">—</td>
+      </tr>
+      <tr class="total-row">
+        <td>Total / month</td>
+        <td id="cost-total">—</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Comparison -->
+  <div class="card">
+    <h2>Cache savings</h2>
+    <div class="comparison">
+      <div class="stat-box without">
+        <div class="stat-label">Without cache</div>
+        <div class="stat-value" id="comp-without">—</div>
+        <div class="stat-sub">at full input price</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">With cache</div>
+        <div class="stat-value" id="comp-with" style="color:#60a5fa">—</div>
+        <div class="stat-sub">actual cost</div>
+      </div>
+      <div class="stat-box savings">
+        <div class="stat-label">Savings</div>
+        <div class="stat-value" id="comp-savings">—</div>
+        <div class="stat-sub" id="comp-pct">cheaper</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer-note">
+    Based on real usage data from Max — an AI agent managing 14 customer group chats for a pool company (OC Pools, Mar 2026).<br/>
+    Pricing: claude-sonnet · Input $3/M · Output $15/M · Cache read $0.30/M · Cache write $3.75/M
+  </p>
+
+</div>
+
+<script>
+  // Pricing (per million tokens)
+  const PRICE = {
+    input:       3.00,
+    output:     15.00,
+    cacheRead:   0.30,
+    cacheWrite:  3.75,
+  };
+
+  function fmt(n) {
+    return n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  }
+
+  function fmtDollar(n) {
+    if (n >= 1000) return '$' + (n/1000).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + 'K';
+    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function calculate() {
+    const convos = +document.getElementById('sl-convos').value;
+    const msgs   = +document.getElementById('sl-msgs').value;
+    const cr     = +document.getElementById('sl-cr').value;
+    const cw     = +document.getElementById('sl-cw').value;
+    const out    = +document.getElementById('sl-out').value;
+    const li     = +document.getElementById('sl-li').value;
+
+    // Update display values
+    document.getElementById('val-convos').textContent = fmt(convos);
+    document.getElementById('val-msgs').textContent   = msgs;
+    document.getElementById('val-cr').textContent     = fmt(cr);
+    document.getElementById('val-cw').textContent     = fmt(cw);
+    document.getElementById('val-out').textContent    = fmt(out);
+    document.getElementById('val-li').textContent     = fmt(li);
+
+    // Scale output and live input by messages ratio (baseline = 6)
+    const msgRatio = msgs / 6;
+    const scaledOut = out * msgRatio;
+    const scaledLi  = li  * msgRatio;
+
+    // Cache: system prompt fixed (~9K), new context scales with msgs
+    // But user controls the base — we scale the non-system-prompt portion
+    const SYSTEM_PROMPT = 9000;
+    const perMsgContext = Math.max(0, cr - SYSTEM_PROMPT) / 6;
+    const scaledCr = SYSTEM_PROMPT + perMsgContext * msgs;
+
+    const perMsgCw = Math.max(0, cw - SYSTEM_PROMPT) / 6;
+    const scaledCw = SYSTEM_PROMPT + perMsgCw * msgs;
+
+    // Monthly totals
+    const totalCr  = scaledCr  * convos;
+    const totalCw  = scaledCw  * convos;
+    const totalOut = scaledOut * convos;
+    const totalLi  = scaledLi  * convos;
+
+    // Costs
+    const costCr  = totalCr  / 1e6 * PRICE.cacheRead;
+    const costCw  = totalCw  / 1e6 * PRICE.cacheWrite;
+    const costOut = totalOut / 1e6 * PRICE.output;
+    const costLi  = totalLi  / 1e6 * PRICE.input;
+    const costTotal = costCr + costCw + costOut + costLi;
+
+    document.getElementById('cost-cr').textContent  = fmtDollar(costCr);
+    document.getElementById('cost-cw').textContent  = fmtDollar(costCw);
+    document.getElementById('cost-out').textContent = fmtDollar(costOut);
+    document.getElementById('cost-li').textContent  = fmtDollar(costLi);
+    document.getElementById('cost-total').textContent = fmtDollar(costTotal);
+
+    // Without cache: treat cache_read + cache_write as regular input
+    const withoutCache = (totalCr + totalCw + totalLi) / 1e6 * PRICE.input + costOut;
+    const savings = withoutCache - costTotal;
+    const pct = withoutCache > 0 ? (savings / withoutCache * 100) : 0;
+
+    document.getElementById('comp-without').textContent = fmtDollar(withoutCache);
+    document.getElementById('comp-with').textContent    = fmtDollar(costTotal);
+    document.getElementById('comp-savings').textContent = fmtDollar(savings);
+    document.getElementById('comp-pct').textContent     = pct.toFixed(0) + '% cheaper';
+  }
+
+  function resetTokens() {
+    document.getElementById('sl-cr').value  = 174256;
+    document.getElementById('sl-cw').value  = 138981;
+    document.getElementById('sl-out').value = 866;
+    document.getElementById('sl-li').value  = 503;
+    calculate();
+  }
+
+  // Wire up all sliders
+  document.querySelectorAll('input[type="range"]').forEach(el => {
+    el.addEventListener('input', calculate);
+  });
+
+  // Initial render
+  calculate();
+</script>
+</body>
+</html>
