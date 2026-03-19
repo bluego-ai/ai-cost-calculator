@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Agent Cost Estimator — bluego.ai</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117; color: #e8eaf0; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 20px;
+    }
+    .container { max-width: 560px; width: 100%; }
+    .header { text-align: center; margin-bottom: 40px; }
+    .badge {
+      display: inline-block; background: #1e3a5f; color: #60a5fa;
+      font-size: 12px; font-weight: 600; padding: 3px 10px;
+      border-radius: 99px; margin-bottom: 12px;
+    }
+    .header h1 { font-size: 26px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .header p { color: #8b8fa8; font-size: 15px; line-height: 1.5; }
+    .card {
+      background: #1a1d27; border: 1px solid #2a2d3a;
+      border-radius: 16px; padding: 32px; margin-bottom: 20px;
+    }
+    .slider-group { margin-bottom: 32px; }
+    .slider-group:last-child { margin-bottom: 0; }
+    .slider-label {
+      display: flex; justify-content: space-between;
+      align-items: baseline; margin-bottom: 12px;
+    }
+    .slider-label .name { font-size: 16px; font-weight: 500; color: #d0d3e8; }
+    .slider-value { font-size: 22px; font-weight: 700; color: #60a5fa; }
+    input[type="range"] {
+      width: 100%; height: 6px; -webkit-appearance: none; appearance: none;
+      background: #2a2d3a; border-radius: 3px; outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 22px; height: 22px;
+      background: #60a5fa; border-radius: 50%; cursor: pointer;
+      transition: background 0.15s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { background: #93c5fd; }
+    .slider-hints {
+      display: flex; justify-content: space-between;
+      margin-top: 6px; font-size: 12px; color: #4b4f6a;
+    }
+    .result-card {
+      background: linear-gradient(135deg, #1e3a5f 0%, #1a1d27 100%);
+      border: 1px solid #3b5c8a; border-radius: 16px;
+      padding: 32px; text-align: center; margin-bottom: 20px;
+    }
+    .result-label { font-size: 13px; color: #93c5fd; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .result-value { font-size: 52px; font-weight: 800; color: #fff; line-height: 1; }
+    .result-sub { font-size: 14px; color: #8b8fa8; margin-top: 8px; }
+    .per-convo {
+      display: flex; justify-content: center; gap: 32px;
+      margin-top: 20px; padding-top: 20px; border-top: 1px solid #2a3a55;
+    }
+    .per-convo-stat { text-align: center; }
+    .per-convo-stat .pv { font-size: 18px; font-weight: 700; color: #60a5fa; }
+    .per-convo-stat .pl { font-size: 12px; color: #8b8fa8; margin-top: 2px; }
+    .footer-note { text-align: center; font-size: 12px; color: #4b4f6a; line-height: 1.6; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge">bluego.ai</div>
+    <h1>AI Agent Cost Estimator</h1>
+    <p>Estimate your monthly AI agent cost based on your conversation volume.</p>
+  </div>
+
+  <div class="card">
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="name">Conversations per month</span>
+        <span class="slider-value" id="val-convos">200</span>
+      </div>
+      <input type="range" id="sl-convos" min="10" max="3000" step="10" value="200" />
+      <div class="slider-hints"><span>10</span><span>3,000</span></div>
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="name">Messages per conversation</span>
+        <span class="slider-value" id="val-msgs">10</span>
+      </div>
+      <input type="range" id="sl-msgs" min="2" max="50" step="1" value="10" />
+      <div class="slider-hints"><span>2</span><span>50</span></div>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="result-label">Estimated monthly cost</div>
+    <div class="result-value" id="total-cost">—</div>
+    <div class="result-sub" id="total-sub">per month</div>
+    <div class="per-convo">
+      <div class="per-convo-stat">
+        <div class="pv" id="per-convo-cost">—</div>
+        <div class="pl">per conversation</div>
+      </div>
+      <div class="per-convo-stat">
+        <div class="pv" id="total-convos">—</div>
+        <div class="pl">conversations</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer-note">
+    Estimates based on real usage data from a deployed AI agent (OC Pools, Mar 2026).<br/>
+    Actual costs may vary based on conversation complexity and message length.
+  </p>
+
+</div>
+<script>
+  // ─────────────────────────────────────────────────────────────────────────────
+  // INTERNAL CONFIG — adjust here, not visible to end users
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Markup multiplier applied to raw API cost before displaying to user
+  // 3.0 = 200% markup (customer pays 3x what the API costs us)
+  const MARKUP = 3.0;
+
+  // Anthropic claude-sonnet pricing (per million tokens)
+  const PRICE = {
+    input:      3.00,
+    output:     15.00,
+    cacheRead:  0.30,
+    cacheWrite: 3.75,
+  };
+
+  // Baseline per-conversation token averages from Max (OC Pools, 10 msgs/convo avg)
+  // These are the raw averages derived from 1,286 real sessions
+  const BASELINE = {
+    cacheRead:  174256,  // tokens
+    cacheWrite: 138981,  // tokens
+    output:     866,     // tokens
+    liveInput:  503,     // tokens
+    msgs:       10,      // messages per conversation (baseline)
+  };
+
+  // Scaling constants — how token usage grows as msg count increases beyond baseline
+  // System prompt is fixed; only new context (per message) scales
+  const SYSTEM_PROMPT_TOKENS = 9000;
+  const PER_MSG_CONTEXT       = 2750; // avg tokens added to cache per message
+
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  function fmt(n) { return n.toLocaleString('en-US', { maximumFractionDigits: 0 }); }
+
+  function fmtDollar(n) {
+    if (n >= 10000) return '$' + Math.round(n / 1000) + 'K';
+    if (n >= 1000)  return '$' + (n / 1000).toFixed(1) + 'K';
+    return '$' + n.toFixed(0);
+  }
+
+  function fmtDollarPrecise(n) {
+    if (n >= 10) return '$' + n.toFixed(0);
+    return '$' + n.toFixed(2);
+  }
+
+  function calculate() {
+    const convos = +document.getElementById('sl-convos').value;
+    const msgs   = +document.getElementById('sl-msgs').value;
+
+    document.getElementById('val-convos').textContent = fmt(convos);
+    document.getElementById('val-msgs').textContent   = msgs;
+
+    // Scale tokens by message count relative to baseline
+    const msgRatio = msgs / BASELINE.msgs;
+
+    // Output and live input scale linearly with message count
+    const scaledOutput   = BASELINE.output    * msgRatio;
+    const scaledLiveIn   = BASELINE.liveInput * msgRatio;
+
+    // Cache: fixed system prompt + per-message context component
+    const baseContextCr = Math.max(0, BASELINE.cacheRead  - SYSTEM_PROMPT_TOKENS);
+    const baseContextCw = Math.max(0, BASELINE.cacheWrite - SYSTEM_PROMPT_TOKENS);
+    const scaledCr = SYSTEM_PROMPT_TOKENS + (baseContextCr / BASELINE.msgs) * msgs;
+    const scaledCw = SYSTEM_PROMPT_TOKENS + (baseContextCw / BASELINE.msgs) * msgs;
+
+    // Raw API cost per conversation
+    const rawPerConvo =
+      scaledCr  / 1e6 * PRICE.cacheRead  +
+      scaledCw  / 1e6 * PRICE.cacheWrite +
+      scaledOutput / 1e6 * PRICE.output  +
+      scaledLiveIn / 1e6 * PRICE.input;
+
+    // Apply markup
+    const billedPerConvo = rawPerConvo * MARKUP;
+    const billedTotal    = billedPerConvo * convos;
+
+    // Update UI
+    document.getElementById('total-cost').textContent    = fmtDollar(billedTotal);
+    document.getElementById('per-convo-cost').textContent = fmtDollarPrecise(billedPerConvo);
+    document.getElementById('total-convos').textContent   = fmt(convos);
+    document.getElementById('total-sub').textContent      = `estimated per month`;
+  }
+
+  document.querySelectorAll('input[type="range"]').forEach(el => el.addEventListener('input', calculate));
+  calculate();
+</script>
+</body>
+</html>
